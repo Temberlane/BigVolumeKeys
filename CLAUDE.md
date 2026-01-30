@@ -1,0 +1,1 @@
+When generating new files, do NOT always run the testing suite, ONLY RUN TESTS IF YOU SUSPECT LARGE CHANGES HAVE BEEN MADE THAT COULD BREAK A LOT OF THINGS. For minor refactors or feature changes, do NOT run the tests.
