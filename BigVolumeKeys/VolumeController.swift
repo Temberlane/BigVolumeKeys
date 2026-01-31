@@ -67,6 +67,8 @@ class VolumeController {
         } else {
             _ = audioManager.setVolume(deviceID: device.id, volume: volume)
         }
+        // Save the volume to user settings
+        UserSettings.shared.lastVolume = volume
     }
 
     private func setDeviceMute(device: AudioDevice, muted: Bool) {

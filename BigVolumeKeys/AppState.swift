@@ -21,6 +21,7 @@ class AppState: ObservableObject {
     private let volumeController: VolumeController
     private var volumeKeyInterceptor: VolumeKeyInterceptor?
     private let permissionsManager: PermissionsManager
+    private let userSettings = UserSettings.shared
 
     init() {
         self.audioManager = AudioDeviceManager()
@@ -33,7 +34,7 @@ class AppState: ObservableObject {
         // Start observing permissions with a timer as backup
         startPermissionObserver()
 
-        // Check initial permissions
+        // Check initial permissions and restore saved state
         checkPermissions()
     }
 
@@ -65,9 +66,15 @@ class AppState: ObservableObject {
 
         hasPermissions = hasAccess && hasMonitor
 
-        if hasPermissions && !isInterceptorActive {
-            startInterception()
-        } else if !hasPermissions && isInterceptorActive {
+        if hasPermissions {
+            // Restore saved interceptor state
+            let shouldBeActive = userSettings.isInterceptorEnabled
+            if shouldBeActive && !isInterceptorActive {
+                startInterception()
+            } else if !shouldBeActive && isInterceptorActive {
+                stopInterception()
+            }
+        } else if isInterceptorActive {
             stopInterception()
         }
     }
@@ -108,6 +115,7 @@ class AppState: ObservableObject {
 
         if volumeKeyInterceptor?.start() == true {
             isInterceptorActive = true
+            userSettings.isInterceptorEnabled = true
             updateCurrentDevice()
             print("Volume key interception started")
         } else {
@@ -121,6 +129,7 @@ class AppState: ObservableObject {
         volumeKeyInterceptor?.stop()
         volumeKeyInterceptor = nil
         isInterceptorActive = false
+        userSettings.isInterceptorEnabled = false
         print("Volume key interception stopped")
     }
 
@@ -144,6 +153,7 @@ class AppState: ObservableObject {
     func setVolume(_ volume: Float) {
         guard let device = currentDevice else { return }
         _ = audioManager.setVolume(deviceID: device.id, volume: volume)
+        userSettings.lastVolume = volume
         updateCurrentDevice()
     }
 
@@ -151,5 +161,11 @@ class AppState: ObservableObject {
         guard let device = currentDevice else { return }
         _ = audioManager.setMuteState(deviceID: device.id, muted: muted)
         updateCurrentDevice()
+    }
+
+    // MARK: - Settings
+
+    func getSavedVolume() -> Float {
+        return userSettings.lastVolume
     }
 }

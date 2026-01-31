@@ -12,6 +12,7 @@ struct ContentView: View {
     @EnvironmentObject var appState: AppState
     @State private var sliderValue: Double = 0.5
     @State private var isDraggingSlider = false
+    @State private var hasInitializedSlider = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -106,13 +107,22 @@ struct ContentView: View {
                         }
                     }
                     .onAppear {
-                        // Initialize slider value from device
-                        sliderValue = Double(device.volume)
+                        if !hasInitializedSlider {
+                            // Initialize slider from saved volume on first appearance
+                            let savedVolume = appState.getSavedVolume()
+                            sliderValue = Double(savedVolume)
+                            // Set the device volume to match the saved value
+                            appState.setVolume(savedVolume)
+                            print("📱 Initialized slider and device from saved volume: \(savedVolume) (\(Int(savedVolume * 100))%)")
+                            hasInitializedSlider = true
+                        }
                     }
                     .onChange(of: device.volume) { oldValue, newValue in
                         // Update slider when device volume changes (from keyboard, etc.)
                         if !isDraggingSlider {
                             sliderValue = Double(newValue)
+                            // Save when volume changes externally (e.g., via keyboard)
+                            UserSettings.shared.lastVolume = newValue
                         }
                     }
                 }
@@ -185,14 +195,7 @@ struct ContentView: View {
     }
 
     private var currentVolumePercentage: Int {
-        // Show slider value while dragging, otherwise show device volume
-        if isDraggingSlider {
-            return Int(sliderValue * 100)
-        } else if let device = appState.currentDevice {
-            return device.volumePercentage
-        } else {
-            return 0
-        }
+        return Int(sliderValue * 100)
     }
 
     private var volumeIcon: String {
