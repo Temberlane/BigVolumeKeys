@@ -11,7 +11,7 @@ import CoreAudio
 @MainActor
 class VolumeController {
     private let audioManager: AudioDeviceManaging
-    let volumeStep: Float = 0.10  // 5% increments
+    let volumeStep: Float = 0.01  // 1% increments
 
     init(audioManager: AudioDeviceManaging) {
         self.audioManager = audioManager
@@ -106,7 +106,7 @@ class VolumeController {
     }
 
     private func roundToStep(_ value: Float) -> Float {
-        // Round to nearest 0.05
+        // Round to nearest 0.01 (1%)
         return round(value / volumeStep) * volumeStep
     }
 }
