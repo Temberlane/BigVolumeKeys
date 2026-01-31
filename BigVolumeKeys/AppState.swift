@@ -15,6 +15,7 @@ class AppState: ObservableObject {
     @Published var currentDevice: AudioDevice?
     @Published var isInterceptorActive = false
     @Published var hasPermissions = false
+    @Published var sliderValue: Double
 
     // Managers
     private let audioManager: AudioDeviceManager
@@ -24,6 +25,9 @@ class AppState: ObservableObject {
     private let userSettings = UserSettings.shared
 
     init() {
+        // Initialize slider from saved volume
+        self.sliderValue = Double(UserSettings.shared.lastVolume)
+
         self.audioManager = AudioDeviceManager()
         self.volumeController = VolumeController(audioManager: audioManager)
         self.permissionsManager = PermissionsManager.shared
@@ -95,14 +99,18 @@ class AppState: ObservableObject {
         volumeKeyInterceptor = VolumeKeyInterceptor(
             onVolumeUp: { [weak self] in
                 Task { @MainActor in
-                    self?.volumeController.increaseVolume()
-                    self?.updateCurrentDevice()
+                    guard let self = self else { return }
+                    let newVolume = self.volumeController.increaseVolume(currentVolume: Float(self.sliderValue))
+                    self.sliderValue = Double(newVolume)
+                    self.updateCurrentDevice()
                 }
             },
             onVolumeDown: { [weak self] in
                 Task { @MainActor in
-                    self?.volumeController.decreaseVolume()
-                    self?.updateCurrentDevice()
+                    guard let self = self else { return }
+                    let newVolume = self.volumeController.decreaseVolume(currentVolume: Float(self.sliderValue))
+                    self.sliderValue = Double(newVolume)
+                    self.updateCurrentDevice()
                 }
             },
             onMute: { [weak self] in
@@ -153,6 +161,7 @@ class AppState: ObservableObject {
     func setVolume(_ volume: Float) {
         guard let device = currentDevice else { return }
         _ = audioManager.setVolume(deviceID: device.id, volume: volume)
+        sliderValue = Double(volume)
         userSettings.lastVolume = volume
         updateCurrentDevice()
     }

@@ -11,7 +11,7 @@ import CoreAudio
 @MainActor
 class VolumeController {
     private let audioManager: AudioDeviceManaging
-    let volumeStep: Float = 0.05  // 5% increments
+    let volumeStep: Float = 0.10  // 5% increments
 
     init(audioManager: AudioDeviceManaging) {
         self.audioManager = audioManager
@@ -19,27 +19,27 @@ class VolumeController {
 
     // MARK: - Volume Control
 
-    func increaseVolume() {
-        guard let device = audioManager.currentDevice else { return }
+    func increaseVolume(currentVolume: Float) -> Float {
+        guard let device = audioManager.currentDevice else { return currentVolume }
 
         // Unmute if currently muted
         if device.isMuted {
             unmute()
         }
 
-        let currentVolume = audioManager.getVolume(deviceID: device.id) ?? device.volume
         let newVolume = min(1.0, roundToStep(currentVolume + volumeStep))
-
         setDeviceVolume(device: device, volume: newVolume)
+
+        return newVolume
     }
 
-    func decreaseVolume() {
-        guard let device = audioManager.currentDevice else { return }
+    func decreaseVolume(currentVolume: Float) -> Float {
+        guard let device = audioManager.currentDevice else { return currentVolume }
 
-        let currentVolume = audioManager.getVolume(deviceID: device.id) ?? device.volume
         let newVolume = max(0.0, roundToStep(currentVolume - volumeStep))
-
         setDeviceVolume(device: device, volume: newVolume)
+
+        return newVolume
     }
 
     func toggleMute() {

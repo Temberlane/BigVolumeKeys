@@ -10,9 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @Environment(PermissionsManager.self) var permissionsManager: PermissionsManager
     @EnvironmentObject var appState: AppState
-    @State private var sliderValue: Double = 0.5
     @State private var isDraggingSlider = false
-    @State private var hasInitializedSlider = false
 
     var body: some View {
         VStack(spacing: 20) {
@@ -64,22 +62,22 @@ struct ContentView: View {
 
                             // Interactive volume slider
                             Slider(
-                                value: $sliderValue,
+                                value: $appState.sliderValue,
                                 in: 0...1,
                                 onEditingChanged: { editing in
                                     isDraggingSlider = editing
                                     if !editing {
                                         // User finished dragging, update the device
-                                        let newVolume = Float(sliderValue)
+                                        let newVolume = Float(appState.sliderValue)
                                         print("Slider drag ended - Setting volume to: \(newVolume) (\(Int(newVolume * 100))%)")
                                         appState.setVolume(newVolume)
                                     } else {
-                                        print("Slider drag started - Current value: \(sliderValue) (\(Int(sliderValue * 100))%)")
+                                        print("Slider drag started - Current value: \(appState.sliderValue) (\(Int(appState.sliderValue * 100))%)")
                                     }
                                 }
                             )
                             .tint(device.isMuted ? .red : .blue)
-                            .onChange(of: sliderValue) { oldValue, newValue in
+                            .onChange(of: appState.sliderValue) { oldValue, newValue in
                                 if isDraggingSlider {
                                     print("Slider value changing: \(newValue) (\(Int(newValue * 100))%)")
                                 }
@@ -87,7 +85,6 @@ struct ContentView: View {
 
                             // Max volume button
                             Button {
-                                sliderValue = 1.0
                                 appState.setVolume(1.0)
                                 if device.isMuted {
                                     appState.setMute(false)
@@ -107,23 +104,10 @@ struct ContentView: View {
                         }
                     }
                     .onAppear {
-                        if !hasInitializedSlider {
-                            // Initialize slider from saved volume on first appearance
-                            let savedVolume = appState.getSavedVolume()
-                            sliderValue = Double(savedVolume)
-                            // Set the device volume to match the saved value
-                            appState.setVolume(savedVolume)
-                            print("📱 Initialized slider and device from saved volume: \(savedVolume) (\(Int(savedVolume * 100))%)")
-                            hasInitializedSlider = true
-                        }
-                    }
-                    .onChange(of: device.volume) { oldValue, newValue in
-                        // Update slider when device volume changes (from keyboard, etc.)
-                        if !isDraggingSlider {
-                            sliderValue = Double(newValue)
-                            // Save when volume changes externally (e.g., via keyboard)
-                            UserSettings.shared.lastVolume = newValue
-                        }
+                        // Set the device volume to match the saved slider value on first appearance
+                        let savedVolume = appState.getSavedVolume()
+                        appState.setVolume(savedVolume)
+                        print("📱 Initialized device from saved volume: \(savedVolume) (\(Int(savedVolume * 100))%)")
                     }
                 }
                 .padding(.horizontal)
@@ -195,7 +179,7 @@ struct ContentView: View {
     }
 
     private var currentVolumePercentage: Int {
-        return Int(sliderValue * 100)
+        return Int(appState.sliderValue * 100)
     }
 
     private var volumeIcon: String {
