@@ -323,23 +323,31 @@ class AudioDeviceManager: ObservableObject {
                                              0,
                                              nil,
                                              &dataSize) == noErr else {
+            print("⚠️ getSubDevices: No sub-devices property for device \(deviceID)")
             return nil
         }
 
-        let count = Int(dataSize) / MemoryLayout<CFString>.size
-        var subDeviceUIDs = [CFString](repeating: "" as CFString, count: count)
-
+        // The property returns a CFArray, not a C array
+        var cfArray: CFArray?
         guard AudioObjectGetPropertyData(deviceID,
                                         &propertyAddress,
                                         0,
                                         nil,
                                         &dataSize,
-                                        &subDeviceUIDs) == noErr else {
+                                        &cfArray) == noErr else {
+            print("⚠️ getSubDevices: Failed to get property data for device \(deviceID)")
             return nil
         }
 
-        return subDeviceUIDs.compactMap { uid in
-            getDeviceIDFromUID(uid: uid as String)
+        // Safely convert CFArray to Swift [String]
+        guard let array = cfArray as? [String] else {
+            print("⚠️ getSubDevices: Failed to convert CFArray to [String] for device \(deviceID)")
+            return nil
+        }
+
+        print("📱 getSubDevices: Found \(array.count) sub-device UIDs for device \(deviceID)")
+        return array.compactMap { uid in
+            getDeviceIDFromUID(uid: uid)
         }
     }
 
