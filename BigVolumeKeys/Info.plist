@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>BigVolumeKeys needs permission to monitor and control system events for volume key functionality.</string>
+	<key>NSSystemAdministrationUsageDescription</key>
+	<string>BigVolumeKeys needs accessibility access to monitor keyboard events.</string>
+</dict>
+</plist>

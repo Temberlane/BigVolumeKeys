@@ -2,7 +2,7 @@
 //  BigVolumeKeysTests.swift
 //  BigVolumeKeysTests
 //
-//  Created by Thomas Li on 2026-01-30.
+//  Integration tests for BigVolumeKeys
 //
 
 import XCTest
@@ -10,27 +10,198 @@ import XCTest
 
 final class BigVolumeKeysTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    // MARK: - Integration Tests
+
+    @MainActor
+    func testEndToEndVolumeControlWorkflow() async {
+        // Create mock audio manager
+        let mockManager = MockAudioDeviceManager()
+        let device = AudioDevice(
+            id: 1,
+            name: "Test Device",
+            volume: 0.5,
+            isMuted: false,
+            isMultiOutput: false
+        )
+        mockManager.mockCurrentDevice = device
+        mockManager.mockVolumes[1] = 0.5
+
+        // Create volume controller
+        let controller = VolumeController(audioManager: mockManager)
+
+        // Simulate volume key presses
+        controller.increaseVolume()
+        XCTAssertEqual(Double(mockManager.lastSetVolumeValue ?? 0), 0.55, accuracy: 0.01)
+
+        controller.decreaseVolume()
+        mockManager.mockVolumes[1] = 0.55  // Simulate manager update
+        XCTAssertEqual(Double(mockManager.lastSetVolumeValue ?? 0), 0.50, accuracy: 0.01)
+
+        controller.toggleMute()
+        XCTAssertEqual(mockManager.lastSetMuteValue, true)
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    @MainActor
+    func testMultiOutputDeviceWorkflow() async {
+        let mockManager = MockAudioDeviceManager()
+        let multiDevice = AudioDevice(
+            id: 1,
+            name: "Multi-Output Device",
+            volume: 0.5,
+            isMuted: false,
+            isMultiOutput: true
+        )
+        mockManager.mockCurrentDevice = multiDevice
+        mockManager.mockVolumes[1] = 0.5
+        mockManager.mockSubDevices[1] = [10, 20]  // Two sub-devices
+
+        let controller = VolumeController(audioManager: mockManager)
+
+        // Volume change should affect both sub-devices
+        controller.increaseVolume()
+        XCTAssertEqual(mockManager.setVolumeCallCount, 2, "Should set volume on both sub-devices")
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    @MainActor
+    func testVolumeStepConsistency() async {
+        let mockManager = MockAudioDeviceManager()
+        let device = AudioDevice(
+            id: 1,
+            name: "Test",
+            volume: 0.0,
+            isMuted: false,
+            isMultiOutput: false
+        )
+        mockManager.mockCurrentDevice = device
+        mockManager.mockVolumes[1] = 0.0
+
+        let controller = VolumeController(audioManager: mockManager)
+
+        // 20 increases should get to 100%
+        for i in 0..<20 {
+            controller.increaseVolume()
+            mockManager.mockVolumes[1] = mockManager.lastSetVolumeValue ?? 0
+
+            let expectedVolume = min(1.0, Float(i + 1) * 0.05)
+            XCTAssertEqual(Double(mockManager.lastSetVolumeValue ?? 0), Double(expectedVolume), accuracy: 0.001,
+                          "Step \(i + 1) should be \(expectedVolume)")
+        }
+
+        // Final volume should be 1.0
+        XCTAssertEqual(Double(mockManager.mockVolumes[1] ?? 0), 1.0, accuracy: 0.001)
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+    @MainActor
+    func testVolumeBoundaryBehavior() async {
+        let mockManager = MockAudioDeviceManager()
+        let device = AudioDevice(
+            id: 1,
+            name: "Test",
+            volume: 0.98,
+            isMuted: false,
+            isMultiOutput: false
+        )
+        mockManager.mockCurrentDevice = device
+        mockManager.mockVolumes[1] = 0.98
+
+        let controller = VolumeController(audioManager: mockManager)
+
+        // Increase should cap at 1.0
+        controller.increaseVolume()
+        XCTAssertEqual(Double(mockManager.lastSetVolumeValue ?? 0), 1.0, accuracy: 0.001)
+
+        // Further increases should stay at 1.0
+        mockManager.mockVolumes[1] = 1.0
+        controller.increaseVolume()
+        XCTAssertEqual(Double(mockManager.lastSetVolumeValue ?? 0), 1.0, accuracy: 0.001)
+    }
+
+    @MainActor
+    func testMuteUnmuteOnVolumeUp() async {
+        let mockManager = MockAudioDeviceManager()
+        let device = AudioDevice(
+            id: 1,
+            name: "Test",
+            volume: 0.5,
+            isMuted: true,  // Start muted
+            isMultiOutput: false
+        )
+        mockManager.mockCurrentDevice = device
+        mockManager.mockVolumes[1] = 0.5
+        mockManager.mockMuteStates[1] = true
+
+        let controller = VolumeController(audioManager: mockManager)
+
+        // Volume up should unmute first
+        controller.increaseVolume()
+
+        XCTAssertEqual(mockManager.lastSetMuteValue, false, "Should unmute on volume up")
+        XCTAssertGreaterThanOrEqual(mockManager.setMuteCallCount, 1)
+    }
+
+    // MARK: - Performance Tests
+
+    @MainActor
+    func testVolumeControlPerformance() async {
+        let mockManager = MockAudioDeviceManager()
+        let device = AudioDevice(
+            id: 1,
+            name: "Test",
+            volume: 0.5,
+            isMuted: false,
+            isMultiOutput: false
+        )
+        mockManager.mockCurrentDevice = device
+        mockManager.mockVolumes[1] = 0.5
+
+        let controller = VolumeController(audioManager: mockManager)
+
+        measure {
+            for _ in 0..<1000 {
+                controller.increaseVolume()
+                controller.decreaseVolume()
+            }
         }
     }
 
+    // MARK: - Error Handling Tests
+
+    @MainActor
+    func testGracefulHandlingOfMissingDevice() async {
+        let mockManager = MockAudioDeviceManager()
+        mockManager.mockCurrentDevice = nil
+
+        let controller = VolumeController(audioManager: mockManager)
+
+        // None of these should crash
+        controller.increaseVolume()
+        controller.decreaseVolume()
+        controller.toggleMute()
+        controller.mute()
+        controller.unmute()
+
+        XCTAssertEqual(mockManager.setVolumeCallCount, 0)
+        XCTAssertEqual(mockManager.setMuteCallCount, 0)
+    }
+
+    @MainActor
+    func testHandlingOfFailedVolumeSet() async {
+        let mockManager = MockAudioDeviceManager()
+        let device = AudioDevice(
+            id: 1,
+            name: "Test",
+            volume: 0.5,
+            isMuted: false,
+            isMultiOutput: false
+        )
+        mockManager.mockCurrentDevice = device
+        mockManager.mockVolumes[1] = 0.5
+        mockManager.shouldFailSetVolume = true
+
+        let controller = VolumeController(audioManager: mockManager)
+
+        // Should not crash even when setVolume fails
+        controller.increaseVolume()
+        XCTAssertEqual(mockManager.setVolumeCallCount, 1, "Should still attempt to set volume")
+    }
 }
