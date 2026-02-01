@@ -201,7 +201,14 @@ class AudioDeviceManager: ObservableObject {
     }
 
     func setVolume(deviceID: AudioDeviceID, volume: Float) -> Bool {
-        guard canSetVolume(deviceID: deviceID) else { return false }
+        let isSettable = canSetVolume(deviceID: deviceID)
+        if !isSettable {
+            print("""
+            🔎 setVolume: Expected device \(deviceID) to be settable. Actual: not settable.
+            Meaning: The device doesn't expose a writable kAudioDevicePropertyVolumeScalar on the main output element, so volume changes will be ignored.
+            """)
+            return false
+        }
 
         var propertyAddress = AudioObjectPropertyAddress(
             mSelector: kAudioDevicePropertyVolumeScalar,
@@ -225,6 +232,12 @@ class AudioDeviceManager: ObservableObject {
             }
         }
 
+        print("""
+        🔎 setVolume: Expected AudioObjectSetPropertyData to return noErr for device \(deviceID) with volume \(newVolume).
+        Actual: \(result == noErr ? "noErr (success)" : "OSStatus \(result) (failure)").
+        Meaning: success means CoreAudio accepted the new volume; failure means the device rejected the update or the property is not writable.
+        """)
+
         return result == noErr
     }
 
@@ -239,6 +252,12 @@ class AudioDeviceManager: ObservableObject {
         let result = AudioObjectIsPropertySettable(deviceID,
                                                    &propertyAddress,
                                                    &isSettable)
+
+        print("""
+        🔎 canSetVolume: Expected AudioObjectIsPropertySettable to return noErr and isSettable=true for device \(deviceID).
+        Actual: \(result == noErr ? "noErr" : "OSStatus \(result)") + isSettable=\(isSettable.boolValue).
+        Meaning: noErr+true means volume can be written; noErr+false means the device exposes volume but is read-only; non-noErr means CoreAudio could not query the property.
+        """)
 
         return result == noErr && isSettable.boolValue
     }
