@@ -168,6 +168,10 @@ class VolumeKeyInterceptor {
                 keyHoldStartTime = nil
                 currentHeldKey = nil
             }
+            // Suppress key up events for volume/mute keys to prevent macOS from also handling them
+            if keyCode == NX_KEYTYPE_SOUND_UP || keyCode == NX_KEYTYPE_SOUND_DOWN || keyCode == NX_KEYTYPE_MUTE {
+                return nil
+            }
             return Unmanaged.passRetained(event)
         }
 
