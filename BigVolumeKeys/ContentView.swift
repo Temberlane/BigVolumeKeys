@@ -13,86 +13,89 @@ struct ContentView: View {
     @State private var isDraggingSlider = false
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 12) {
+            // Permissions warning (only shown when not granted)
+            if !permissionsManager.hasAccessibilityPermission || !permissionsManager.hasInputMonitoringPermission {
+                permissionsWarning
+            }
+
             // Current device info
             if let device = appState.currentDevice {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Text("Current Device:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                        Text(device.name)
+                            .font(.headline)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer()
                         if device.isMultiOutput {
-                            Image(systemName: "speaker.wave.3.fill")
+                            Image(systemName: "chevron.right")
                                 .font(.caption)
-                                .foregroundColor(.orange)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    Text(device.name)
-                        .font(.headline)
-                        .lineLimit(2)
-                        .truncationMode(.middle)
 
-                    // Conditionally render multi-output or single-device slider
                     if device.isMultiOutput || !appState.manuallyAddedDevices.isEmpty {
                         MultiOutputVolumeView(device: device)
                             .environmentObject(appState)
                     } else {
-                        // Single device volume slider
                         singleDeviceVolumeSlider(device: device)
                     }
                 }
-                .padding(.horizontal)
                 .onAppear {
-                    // Set the device volume to match the saved slider value on first appearance
                     let savedVolume = appState.getSavedVolume()
                     appState.setVolume(savedVolume)
                     print("📱 Initialized device from saved volume: \(savedVolume) (\(Int(savedVolume * 100))%)")
                 }
             } else {
-                Text("No audio device detected")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                HStack {
+                    Image(systemName: "speaker.slash")
+                        .foregroundStyle(.secondary)
+                    Text("No audio device detected")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
             }
 
             Divider()
+                .opacity(0.5)
 
-            // Permissions section
-            VStack(alignment: .leading, spacing: 10) {
-                PermissionRow(
-                    title: "Accessibility",
-                    granted: permissionsManager.hasAccessibilityPermission
-                )
-
-                PermissionRow(
-                    title: "Input Monitoring",
-                    granted: permissionsManager.hasInputMonitoringPermission
-                )
-            }
-            .padding(.horizontal)
-
-            if !permissionsManager.hasAccessibilityPermission || !permissionsManager.hasInputMonitoringPermission {
-                Button("Request Permissions") {
-                    permissionsManager.requestPermissions()
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button("Open System Preferences") {
-                    permissionsManager.openSystemPreferences()
-                }
-            }
-
-            Divider()
-
-            Button("Quit") {
+            Button {
                 NSApplication.shared.terminate(nil)
+            } label: {
+                Text("Quit")
+                    .font(.caption)
+                    .frame(maxWidth: .infinity)
             }
+            .buttonStyle(.plain)
         }
-        .padding(40)
-        .frame(minWidth: 350)
+        .padding(20)
+        .frame(minWidth: 300, maxWidth: 320)
         .onAppear {
             permissionsManager.ensurePollingActive()
             appState.checkPermissions()
         }
+    }
+
+    private var permissionsWarning: some View {
+        VStack(spacing: 8) {
+            Text("Accessibility access is required to intercept volume keys.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            Button {
+                permissionsManager.openSystemPreferences()
+            } label: {
+                Text("Open Settings")
+                    .font(.caption)
+            }
+            .buttonStyle(.bordered)
+            .controlSize(.small)
+        }
+        .padding(.bottom, 4)
     }
 
     private var currentVolumePercentage: Int {
@@ -101,36 +104,23 @@ struct ContentView: View {
 
     @ViewBuilder
     private func singleDeviceVolumeSlider(device: AudioDevice) -> some View {
-        VStack(spacing: 4) {
-            HStack {
-                Text("Volume:")
-                    .font(.caption)
-                Spacer()
-                Text("\(currentVolumePercentage)%")
-                    .font(.caption)
-                    .monospacedDigit()
-                    .foregroundColor(device.isMuted ? .red : .primary)
-            }
-
+        VStack(spacing: 6) {
             HStack(spacing: 8) {
-                // Mute button
                 Button {
                     appState.setMute(!device.isMuted)
                     print("Mute toggled: \(!device.isMuted)")
                 } label: {
                     Image(systemName: device.isMuted ? "speaker.slash.fill" : "speaker.fill")
-                        .foregroundColor(device.isMuted ? .red : .secondary)
+                        .foregroundStyle(device.isMuted ? .primary : .secondary)
                 }
                 .buttonStyle(.plain)
 
-                // Interactive volume slider
                 Slider(
                     value: $appState.sliderValue,
                     in: 0...1,
                     onEditingChanged: { editing in
                         isDraggingSlider = editing
                         if !editing {
-                            // User finished dragging, update the device
                             let newVolume = Float(appState.sliderValue)
                             print("Slider drag ended - Setting volume to: \(newVolume) (\(Int(newVolume * 100))%)")
                             appState.setVolume(newVolume)
@@ -139,14 +129,12 @@ struct ContentView: View {
                         }
                     }
                 )
-                .tint(device.isMuted ? .red : .blue)
                 .onChange(of: appState.sliderValue) { _, newValue in
                     if isDraggingSlider {
                         appState.setVolume(Float(newValue))
                     }
                 }
 
-                // Max volume button
                 Button {
                     appState.setVolume(1.0)
                     if device.isMuted {
@@ -155,7 +143,7 @@ struct ContentView: View {
                     print("Max volume button pressed - Volume set to: 1.0 (100%)")
                 } label: {
                     Image(systemName: "speaker.wave.3.fill")
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
             }
@@ -163,25 +151,11 @@ struct ContentView: View {
             if device.isMuted {
                 Text("Muted")
                     .font(.caption2)
-                    .foregroundColor(.red)
+                    .foregroundStyle(.secondary)
             }
         }
     }
 
-}
-
-struct PermissionRow: View {
-    let title: String
-    let granted: Bool
-
-    var body: some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
-                .foregroundColor(granted ? .green : .red)
-        }
-    }
 }
 
 #Preview {

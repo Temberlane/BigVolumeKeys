@@ -23,10 +23,10 @@ struct AddDeviceSheet: View {
                 VStack(spacing: 8) {
                     Image(systemName: "speaker.slash")
                         .font(.largeTitle)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                     Text("No additional devices available")
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 20)
@@ -39,18 +39,18 @@ struct AddDeviceSheet: View {
                             } label: {
                                 HStack {
                                     Image(systemName: "speaker.wave.2")
-                                        .foregroundColor(.blue)
+                                        .foregroundStyle(.secondary)
                                     Text(device.name)
                                         .lineLimit(1)
                                         .truncationMode(.tail)
                                     Spacer()
                                     Image(systemName: "plus.circle")
-                                        .foregroundColor(.green)
+                                        .foregroundStyle(.secondary)
                                 }
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
-                                .background(Color.secondary.opacity(0.1))
-                                .cornerRadius(8)
+                                .background(.quaternary)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
                             .buttonStyle(.plain)
                         }
@@ -63,9 +63,10 @@ struct AddDeviceSheet: View {
                 isPresented = false
             }
             .buttonStyle(.bordered)
+            .controlSize(.small)
         }
         .padding()
-        .frame(width: 300)
+        .frame(width: 280)
     }
 
     private func addDevice(_ device: AudioDevice) {

@@ -23,12 +23,12 @@ struct SubDeviceSlider: View {
                     .font(.caption)
                     .lineLimit(1)
                     .truncationMode(.tail)
-                    .foregroundColor(subDevice.canSetVolume ? .primary : .secondary)
+                    .foregroundStyle(subDevice.canSetVolume ? .primary : .secondary)
 
                 if !subDevice.canSetVolume {
                     Image(systemName: "lock.fill")
                         .font(.caption2)
-                        .foregroundColor(.secondary)
+                        .foregroundStyle(.secondary)
                         .help("Volume cannot be controlled for this device")
                 }
 
@@ -37,7 +37,7 @@ struct SubDeviceSlider: View {
                 Text("\(Int(volume * 100))%")
                     .font(.caption)
                     .monospacedDigit()
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.secondary)
 
                 if subDevice.isManuallyAdded, let onRemove = onRemove {
                     Button {
@@ -45,7 +45,7 @@ struct SubDeviceSlider: View {
                     } label: {
                         Image(systemName: "xmark.circle.fill")
                             .font(.caption)
-                            .foregroundColor(.secondary)
+                            .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
                     .help("Remove device")
@@ -64,7 +64,6 @@ struct SubDeviceSlider: View {
                     onVolumeChange(Float(newValue))
                 }
             }
-            .tint(subDevice.canSetVolume ? .blue : .gray)
             .disabled(!subDevice.canSetVolume)
         }
         .padding(.vertical, 4)
