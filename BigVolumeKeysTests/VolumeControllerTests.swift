@@ -245,8 +245,8 @@ final class VolumeControllerTests: XCTestCase {
 
     // MARK: - Volume Step Tests
 
-    func testVolumeStepIs1Percent() async {
-        XCTAssertEqual(Double(volumeController.volumeStep), 0.01, accuracy: 0.001)
+    func testVolumeStepIs10Percent() async {
+        XCTAssertEqual(Double(volumeController.defaultVolumeStep), 0.10, accuracy: 0.001)
     }
 
     func testVolumeRoundsToNearestStep() async {

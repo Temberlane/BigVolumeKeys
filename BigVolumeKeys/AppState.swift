@@ -110,6 +110,7 @@ class AppState: ObservableObject {
                     self.sliderValue = Double(newVolume)
                     self.updateCurrentDevice()
                     self.syncSubDeviceSliderValues()
+                    self.showVolumeHUD()
                 }
             },
             onVolumeDown: { [weak self] (step: Float) in
@@ -119,6 +120,7 @@ class AppState: ObservableObject {
                     self.sliderValue = Double(newVolume)
                     self.updateCurrentDevice()
                     self.syncSubDeviceSliderValues()
+                    self.showVolumeHUD()
                 }
             },
             onMute: { [weak self] in
@@ -127,6 +129,7 @@ class AppState: ObservableObject {
                     self.volumeController.toggleMute()
                     self.updateCurrentDevice()
                     self.syncSubDeviceSliderValues()
+                    self.showVolumeHUD()
                 }
             }
         )
@@ -186,6 +189,14 @@ class AppState: ObservableObject {
         guard let device = currentDevice else { return }
         _ = audioManager.setMuteState(deviceID: device.id, muted: muted)
         updateCurrentDevice()
+    }
+
+    // MARK: - Volume HUD
+
+    private func showVolumeHUD() {
+        let deviceName = currentDevice?.name ?? "Unknown Device"
+        let isMuted = currentDevice?.isMuted ?? false
+        VolumeHUDPanel.shared.show(volume: sliderValue, deviceName: deviceName, isMuted: isMuted)
     }
 
     // MARK: - Settings

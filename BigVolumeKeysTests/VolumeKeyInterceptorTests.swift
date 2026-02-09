@@ -23,8 +23,8 @@ final class VolumeKeyInterceptorTests: XCTestCase {
         muteCallCount = 0
 
         interceptor = VolumeKeyInterceptor(
-            onVolumeUp: { [weak self] in self?.volumeUpCallCount += 1 },
-            onVolumeDown: { [weak self] in self?.volumeDownCallCount += 1 },
+            onVolumeUp: { [weak self] _ in self?.volumeUpCallCount += 1 },
+            onVolumeDown: { [weak self] _ in self?.volumeDownCallCount += 1 },
             onMute: { [weak self] in self?.muteCallCount += 1 }
         )
     }
@@ -114,8 +114,8 @@ final class VolumeKeyInterceptorTests: XCTestCase {
         // Create a new interceptor and verify callbacks work
         var testFlag = false
         let testInterceptor = VolumeKeyInterceptor(
-            onVolumeUp: { testFlag = true },
-            onVolumeDown: { },
+            onVolumeUp: { _ in testFlag = true },
+            onVolumeDown: { _ in },
             onMute: { }
         )
 
@@ -128,8 +128,8 @@ final class VolumeKeyInterceptorTests: XCTestCase {
 
     func testInterceptorDeallocation() {
         var interceptorRef: VolumeKeyInterceptor? = VolumeKeyInterceptor(
-            onVolumeUp: { },
-            onVolumeDown: { },
+            onVolumeUp: { _ in },
+            onVolumeDown: { _ in },
             onMute: { }
         )
 
@@ -148,8 +148,8 @@ final class VolumeKeyInterceptorTests: XCTestCase {
 
             init() {
                 interceptor = VolumeKeyInterceptor(
-                    onVolumeUp: { [weak self] in self?.callCount += 1 },
-                    onVolumeDown: { [weak self] in self?.callCount += 1 },
+                    onVolumeUp: { [weak self] _ in self?.callCount += 1 },
+                    onVolumeDown: { [weak self] _ in self?.callCount += 1 },
                     onMute: { [weak self] in self?.callCount += 1 }
                 )
             }
@@ -197,8 +197,8 @@ final class VolumeKeyInterceptorTests: XCTestCase {
 
         for _ in 0..<10 {
             let int = VolumeKeyInterceptor(
-                onVolumeUp: { },
-                onVolumeDown: { },
+                onVolumeUp: { _ in },
+                onVolumeDown: { _ in },
                 onMute: { }
             )
             interceptors.append(int)
