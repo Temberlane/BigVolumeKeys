@@ -9,52 +9,26 @@ import SwiftUI
 
 @main
 struct BigVolumeKeysApp: App {
-    @State private var permissionsManager = PermissionsManager.shared
-    @State private var appState = AppState()
-    @Environment(\.scenePhase) private var scenePhase
-
-    init() {
-        print("🚀 BigVolumeKeysApp.init() called")
-        // Request permissions on launch
-        PermissionsManager.shared.requestPermissions()
-
-        // Log bundle URL path
-        print("Bundle path: \(Bundle.main.bundleURL.path)")
-    }
+    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        MenuBarExtra("BigVolumeKeys", systemImage: menuBarIcon) {
-            ContentView()
-                .environment(permissionsManager)
-                .environmentObject(appState)
-        }
-        .menuBarExtraStyle(.window)
-        .onChange(of: scenePhase) { oldPhase, newPhase in
-            if newPhase == .active {
-                print("🔄 App became active - Ensuring polling is active")
-                PermissionsManager.shared.ensurePollingActive()
-                appState.checkPermissions()
-            }
+        Settings {
+            EmptyView()
         }
     }
+}
 
-    private var menuBarIcon: String {
-        guard let device = appState.currentDevice else {
-            return "speaker.slash"
-        }
+class AppDelegate: NSObject, NSApplicationDelegate {
+    private var statusBarController: StatusBarController?
+    private var appState: AppState?
 
-        if device.isMuted {
-            return "speaker.slash.fill"
-        }
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        print("🚀 BigVolumeKeysApp launched")
+        PermissionsManager.shared.requestPermissions()
+        print("Bundle path: \(Bundle.main.bundleURL.path)")
 
-        if device.volume == 0 {
-            return "speaker.fill"
-        } else if device.volume < 0.33 {
-            return "speaker.wave.1"
-        } else if device.volume < 0.66 {
-            return "speaker.wave.2"
-        } else {
-            return "speaker.wave.3"
-        }
+        let appState = AppState()
+        self.appState = appState
+        statusBarController = StatusBarController(appState: appState, permissionsManager: PermissionsManager.shared)
     }
 }

@@ -58,18 +58,6 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 8)
             }
-
-            Divider()
-                .opacity(0.5)
-
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                Text("Quit")
-                    .font(.caption)
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.plain)
         }
         .padding(20)
         .frame(minWidth: 300, maxWidth: 320)
